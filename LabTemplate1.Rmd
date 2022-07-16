@@ -1,0 +1,69 @@
+---
+title: "Lab 1: Describing Data"
+author: "Cameron Savage"
+output: html_document
+---
+
+### Question 1: Loading and Exploring the Dataset
+
+```{r Q1}
+PrezVote = read.csv("CountyPrezVote2000.csv")
+head(PrezVote)
+attach(PrezVote)
+```
+
+### Question 2: Creating a new variable
+
+```{r}
+votes_twoparty = votes_gop + votes_dem
+prop_dem = votes_dem / votes_twoparty
+```
+
+
+### Question 3: Measures of Central Tendency
+
+```{r Q3}
+mean(prop_dem)
+median(prop_dem)
+hist(prop_dem)
+```
+
+The average percentage of votes per county that went to Biden was 34.04%. The median percentage of votes per county that went to Biden was 30.64%. As shown by the peak in the histogram, Biden received a lower proportion of the vote than Trump in the majority of counties.
+
+### Question 4: What's going on here?
+
+Though Trump won far more counties than Biden, many of the counties Biden won were much more populous than those that Trump won. Given this variation in county population, Biden's fewer counties add up to a higher percentage of individual people than Trump's.
+
+
+### Question 5: Measures of Variation
+
+```{r Q5}
+var(prop_dem)
+sd(prop_dem)
+```
+
+The standard deviation is somewhat low at .163, indicating the overall variation of the data is small. This indicates that the majority of counties follow the general trend of Biden receiving a small percentage of the vote; Biden's victory does not seem to owe to a plentiful amount of deviations from this trend, but instead to fewer deviations with very high numbers of voters.
+
+### Question 6: Extremes
+
+```{r Q6}
+max(prop_dem)
+min(prop_dem)
+```
+
+### Question 7: "Red" and "Blue" Counties
+
+```{r Q7}
+blue = votes_dem > votes_gop
+table(blue)
+```
+
+The table indicates that though Biden only received a majority of votes in 557 counties.
+
+### Question 8: Selecting variable entries
+
+```{r Q8}
+hist(prop_dem[state_name=="Texas"])
+```
+
+The nationwide trend of Biden receiving the majority in relatively few counties holds true in Texas as well, with the Texas histogram's peak being shifted slightly leftward in comparison to the nationwide histogram.
