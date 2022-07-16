@@ -1,0 +1,63 @@
+---
+title: "Lab Assignment 3: Merging and Testing Hypotheses"
+author: "Cameron Savage"
+date:  "June 23, 2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Question 1: Loading the Datasets
+
+```{r}
+PrezVote = read.csv("CountyPrezVote2000.csv")
+Counties = read.csv("county_2019.csv")
+```
+
+### Question 2: Merging the Datasets
+
+```{r}
+PrezVote$fips = PrezVote$county_fips
+MergedData = merge(PrezVote, Counties, by="fips")
+attach(MergedData)
+```
+
+### Question 3: Create `red` variable
+
+```{r}
+votes_twoparty = votes_gop + votes_dem
+prop_dem = votes_dem / votes_twoparty
+
+blue = votes_dem > votes_gop
+
+```
+
+### Question 4: Visualizing Relationships
+
+```{r}
+plot(white, prop_dem)
+```
+
+The above graphic shows the percentages of county populations that are white, plotted against the proportion of county populations that voted for Biden. The concentration of points in the lower right indicates that counties with overwhelmingly white populations primarily had a lower proportion of Democratic votes. Though many counties do not fit this trend exactly, a line of best fit would indicate that the white population percentage is negatively correlated with the Democratic proportion of the vote.
+
+### Question 5: Comparing Two Means: County Population
+
+```{r}
+mean(pop[blue])
+mean(pop[!blue])
+
+t.test(pop ~ blue)
+```
+
+The t-test shows that the null hypothesis that red and blue counties have the same average population is false. The extremely small p-value indicates that a difference of 0 between the averages of the two populations would be virtually impossible on repeated tests, and the confidence interval indicates that the true difference between the means is significantly large. The average population of blue counties in this sample is overwhelmingly higher than that of the red counties.
+
+### Question 6: Comparing Two Means: Per Capita Incom
+
+```{r}
+t.test(per_capita_income ~ blue)
+```
+
+This t-test rejects the null hypothesis that the per capita income in blue and red counties is the same. The p-value, similarly small to that in the previous t-test, shows that a difference of 0 between the average incomes is virtually impossible, and the confidence interval again shows that the true difference is significantly far from 0. The average per capita income in blue counties is more than $4,000 higher than that in red counties.

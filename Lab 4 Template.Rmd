@@ -1,0 +1,71 @@
+---
+title: "Lab Assignment 4: Linear Regression"
+author: "Cameron Savage"
+date:  "July 1, 2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Question 1: Loading the Dataset
+
+```{r}
+UT = read.csv("ut2000.csv")
+attach(UT)
+head(UT)
+```
+
+### Question 2: Descriptive Statistics and Histograms.
+
+```{r}
+mean(SAT.C)
+mean(GPA)
+
+sd(SAT.C)
+sd(GPA)
+
+hist(SAT.C)
+hist(GPA)
+```
+
+### Question 3: Examining Variation by School
+
+```{r}
+boxplot(SAT.C ~ School, cex.axis=.6)
+```
+
+The schools with the highest median test scores are Architecture and Engineering school, Architecture scores notably very rarely going below 1200. However, Business and Communication schools also have ranges that reach the maximum score of 1600.
+
+### Question 4: Plotting SAT score vs GPA
+
+```{r}
+plot(GPA ~ SAT.C)
+```
+
+The association between SAT scores and GPA appears generally positive, but not in a very linear fashion. SAT scores may be a decent predictor for GPA, but outliers are common.
+
+### Question 5: Predicting GPA with SAT Scores
+
+```{r}
+SAT.reg = lm(GPA ~ SAT.C)
+summary(SAT.reg)
+```
+
+### Question 6: Interpreting Regression Coefficients
+
+The SAT.C coefficient is very small at .001288, but note that SAT scores are measured up to 1600, while GPA is measured up to 4.0. For example, under this model, an increase in SAT.C by 100 predicts a decent GPA increase of 0.129, indicating a somewhat large relationship given the scale. The t-statistic is high enough at 30.55, making this a statistically significant finding and enabling us to confidently conclude that the two variables are indeed positively related on average.
+
+### Question 7: Predictions
+
+```{r}
+1.64656 + (.001288071 * 1600)
+1.64656 + (.001288071 * 1400)
+1.64656 + (.001288071 * 1200)
+1.64656 + (.001288071 * 1000)
+```
+
+### Question 8: R-squared
+
+The r-squared value of 0.1524 indicates that 15.24% of the variation in GPA can be explained by SAT scores. Though the regression model is useful in calculating the direction of the relationship between SAT scores and GPA, the data does not match the line very well and SAT scores are far from an exact predictor of GPA.

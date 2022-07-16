@@ -1,0 +1,84 @@
+---
+title: "Lab 2: Recoding and Analyzing Data"
+author: "Cameron Savage"
+output: html_document
+---
+
+### Question 1: Loading and Exploring the Dataset
+
+```{r Q1}
+load("2021SCOTUSpoll.RData")
+
+attach(SCOTUSpoll)
+names(SCOTUSpoll)
+```
+
+### Question 2: Recoding Party ID Variable
+
+```{r Q2}
+library(car)
+
+table(pid7)
+
+pid7.new = recode(pid7, "8=NA")
+table(pid7.new, pid7, exclude=NULL)
+
+mean(pid7.new, na.rm=TRUE)
+hist(pid7.new)
+```
+
+The average ideology is slightly to the left---though the graph has three peaks, its highest is for Strong Democrat.  Interestingly, subjects appeared to be more likely to describe themselves as in the middle (4) or as strongly Republican (7) or strongly Democrat (1), than as partially one way or the other. Additionally, more people described themselves as Strong Democrats than as Strong Republicans.
+
+### Question 3: Examining Association Between Variables
+
+
+```{r Q3}
+hist(idealg)
+boxplot(idealg ~ pid7.new)
+```
+
+The above histogram, calculating ideologies based on subjects' views of Supreme Court cases, differs notably from the self-reported ideologies. This method indicates a distribution that is almost normally shaped, in which few people are very strongly liberal or conservative. The peak is in the middle, which was indeed one of the peaks of the self-reported data, but otherwise the ideologies trend downward going out from this peak. The boxplot does indicate that people who call themselves a Democrat or Republican do trend liberal and conservative respectively in their Supreme Court opinions, but their Supreme Court opinions do not significantly differ with *how* Democrat or Republican they consider themselves to be. In fact, there are some outliers who report themselves as some level of Republican, but whose Supreme Court opinions are very liberal.
+
+### Question 4: Estimating a mean
+
+```{r Q4}
+mean(perception)
+
+# finding lower and upper limits of 95% CI
+mean(perception) - 1.96 * sd(perception) / sqrt(length(perception))
+
+mean(perception) + 1.96 * sd(perception) / sqrt(length(perception))
+
+# finding CI through t-test
+t.test(perception)
+```
+
+### Question 5: Putting the Court's Position in Perspective
+
+```{r Q5}
+boxplot(idealg ~ pid7.new)
+abline(h=idealg_courtmajority)
+
+boxplot(perception ~ pid7.new)
+abline(h=idealg_courtmajority)
+```
+
+The first boxplot indicates that the Court itself is slightly conservative, aligning most with Republicans. The Court's position is slightly further away from Independents than Republicans, but is still relatively close. However, the Court's position is comparatively very far from those of Democrats. The second boxplot shows that the median view of the Court in each ideology considers it roughly neutral (though the individual responses vary greatly, with the whiskers of each self-reported category covering nearly the entire range of possible views of the Court). Still, opinions of the Court trend toward viewing it as a neutral entity, despite it being evidently somewhat conservative.
+
+### Question 6: Estimating a proportion
+
+```{r Q6}
+schoolspeech_per.new = 2 - schoolspeech_per
+table(schoolspeech_per.new)
+
+# manually calculating sample proportion and 95% CI
+620 / (1538 + 620)
+p.hat = 620 / (1538 + 620)
+p.hat - 1.96 * sqrt(p.hat * (1 - p.hat) / sum(length(schoolspeech_per.new)))
+p.hat + 1.96 * sqrt(p.hat * (1 - p.hat) / sum(length(schoolspeech_per.new)))
+
+# finding sample proportion and CI through prop.test
+prop.test(620, 1538 + 620)
+```
+
+The data confidently estimates that most in the population do not think that public school officials can punish students for off-campus speech, indicating that only 28.7% of the population thinks officials *can* do so. The confidence interval indicates that this estimate should be relatively accurate, saying the true proportion likely falls within 2% of the sample proportion.

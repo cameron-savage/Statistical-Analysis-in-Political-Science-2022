@@ -1,0 +1,121 @@
+---
+title: "Semester Project: Final Paper"
+author: "Cameron Savage"
+date: "July 10, 2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Introduction
+
+Two years into the COVID-19 pandemic, there continues to be much variance in vaccination rates across the world. How does a nation's level of democracy relate to its rate of vaccinations against COVID-19? Do more democratic countries generally have higher vaccination levels? If so, can this association be attributed to other factors, such as a nation's level of development?
+
+### Data Description
+
+The dataset used is a merging of three existing datasets, from Varieties of Democracy (V-Dem), Our World in Data (OWID), and the United Nations Inequality-Adjusted Human Development Index (IHDI). The V-Dem set calculates several indices describing the levels of democracy in countries, based on various measures of democratic participation and liberties. The OWID set collects global information about COVID-19 by country, such as vaccination rates, number of cases, and COVID-related deaths. The IHDI assigns a development score to countries based on gross national income per capita, life expectancy, education, and inequality. Observations in all datasets are primarily countries (separated by individual dates for V-Dem and OWID). The merged dataset I will be using focuses on data from December 31, 2021, as this is the most current data in the V-Dem set---however, the most recent iteration of the IHDI is from 2019, so I will be using that for lack of current data. I am also excluding non-country observations from the OWID set, which otherwise includes continents, the world, and other grouped observations that are not necessary for this analysis. After crafting the new dataset from the three source sets, there are 268 observations.
+
+### Descriptive Analyses
+
+```{r}
+# "Tidyverse" package will be used to merge the datasets
+library(tidyverse)
+
+# Reading and storing the datasets
+dem_index = read.csv("V-Dem-CY-Core-v12.csv")
+covid_data = read.csv("owid-covid-data.csv")
+dev_index = read.csv("IHDI_HDR2020_040722.csv")
+
+# Adding "country_name" variable to match V-Dem set for merging
+covid_data$country_name = covid_data$location
+dev_index$country_name = dev_index$country
+
+# Narrowing data down to 2021-12-31, and excluding all non-country observations
+dem_index2021 = dem_index[dem_index$historical_date=="2021-12-31",]
+covid_data2021 = covid_data[covid_data$date=="2021-12-31" & !grepl("OWID_", covid_data$iso_code),]
+
+# Merging three datasets into the main one that will be used
+merge_list = list(dem_index2021, covid_data2021, dev_index)
+dem_covid_dev = merge_list %>% reduce(full_join, by="country_name")
+attach(dem_covid_dev)
+```
+
+The variable I am primarily interested in is the vaccination rate for each country [people_vaccinated_per_hundred]. In the following analysis, this rate will be predicted using the Liberal Democracy Index (LDI) from the V-Dem set [v2x_libdem], and the IHDI from the United Nations [ihdi_2019]. Vaccination rates range from 0 to 100, and LDI and IHDI both range from 0 to 1. To provide a basic understanding of the data, I have attached a mean and histogram for each variable.
+
+```{r}
+mean(people_vaccinated_per_hundred, na.rm=TRUE)
+hist(people_vaccinated_per_hundred)
+
+mean(v2x_libdem, na.rm=TRUE)
+hist(v2x_libdem)
+
+mean(ihdi_2019, na.rm=TRUE)
+hist(ihdi_2019)
+```
+
+As seen above, the average vaccination rate is reasonably above 50% at ~62.25, with 70-80% being the most frequent range by far. The average LDI is slightly below half at ~0.39, with lower values being notably more common than higher ones. The average IDHI is slightly above half at ~0.59, with small peaks at the 0.3-0.4 range and the 0.8-0.9 range.
+
+### Main Analyses
+
+To examine the utility of each predictor, I will produce linear regression models of each independent variable against vaccination rates. I will begin with separate models for each independent variable, then a multivariate regression using both, and finally a model describing possible interaction between the two. Given that all variables are continuous, it would be most illustrative to compare them using scatterplots.
+
+First, I’ll plot LDI against vaccination rates, testing if LDI on its own is a useful predictor for vaccination rates.
+
+```{r}
+plot(people_vaccinated_per_hundred ~ v2x_libdem)
+libdem.reg = lm(people_vaccinated_per_hundred ~ v2x_libdem)
+abline(libdem.reg)
+summary(libdem.reg)
+```
+
+The above plot shows a positive relationship between LDI and vaccination rate, which the linear regression line captures. However, there is much variation beyond the line, particularly for less democratic countries. Although the most democratic countries all have relatively high vaccination rates, less democratic countries vary greatly in their rates—the variation of vaccination rates appears to decrease with higher LDI scores. The regression model’s r-squared value of .2271 indicates that just over a fifth of the variation in vaccination rates is explained by LDI. With a coefficient of 40.103 that passes a .05 significance test (highlighted by the asterisks to the side of the estimate table in the summary above), the relationship estimated by the model is decently large, accounting for a potential difference of ~40 vaccinated people per hundred. The p-value is very small at 3.98e-05, indicating that these results would be very unlikely if there was no association at all between LDI and vaccination rates. Still, given the higher variation at lower LDI values, it seems reasonable that another variable could be a factor. It is possible that LDI is associated with a different variable, such as development levels, and that the association between LDI and vaccination rates will disappear once accounting for that variable.
+
+Next, I’ll run the same test using IHDI as the predictor in place of LDI.
+
+```{r}
+plot(people_vaccinated_per_hundred ~ ihdi_2019)
+dev.reg = lm(people_vaccinated_per_hundred ~ ihdi_2019)
+abline(dev.reg)
+summary(dev.reg)
+```
+
+The plot again shows a positive relationship, this time between IHDI and vaccination rates. The regression line appears to fit the data better than the model predicting vaccination using LDI. There is still some variation from the line, but unlike the previous model, the variation is not localized at either extreme end of the x-axis. The r-squared value of .4984 indicates more accurate estimates than the previous model, explaining about half of the variation, to the LDI model’s .2271. The t-statistic of the intercept is notably low, unable to pass any of R’s significance tests (indicated by the lack of asterisks to the side of the estimate table), meaning that it cannot be confidently concluded that the intercept is positive or negative. However, this intercept is not very important due to its small size and the fact that no country has an IHDI score below 0.232. The coefficient of 93.473 does pass a .05 significance test, so it can be confidently concluded that the relationship between IHDI and vaccination is indeed positive. This coefficient indicates a very large relationship considering the dependent variable’s 100-point range, much larger than the relationship between LDI and vaccination rates. The p-value of 4.231e-10 is smaller than that of the LDI model, showing these results to be even less likely if there were no association between IHDI and vaccination. This analysis shows that a country’s development levels affect vaccination rates even more than democracy levels do.
+
+Taking a brief detour from the primary analysis, I will plot the independent variables against each other to see if they are associated. This analysis may have some useful implications for each variable’s relation to vaccination rates.
+
+```{r}
+plot(v2x_libdem ~ ihdi_2019)
+devdem.reg = lm(v2x_libdem ~ ihdi_2019)
+abline(devdem.reg)
+summary(devdem.reg)
+```
+
+The above model shows that the independent variables have a large positive relationship, with an r-squared value of .4396 and a very low p-value of 2.2e-16. From this, it seems plausible that LDI’s positive relationship with vaccination rate is a result of omitted variable bias—that is, democracy levels may be positively related with vaccination rates only because of their mutual association with development. Alternatively, it is possible that a combination of the two variables is better suited to explain vaccination rates.
+
+Next, I will produce a model predicting vaccination rates using both LDI and IHDI.
+
+```{r}
+both.reg = lm(people_vaccinated_per_hundred ~ v2x_libdem + ihdi_2019)
+summary(both.reg)
+```
+
+This multivariate regression has an r-squared value of .526, the highest of the models discussed so far. This indicates that using both variables better explains the variation than either of them alone. However, it is important to note that only the coefficient for IHDI passes any significance tests—as such, the relationship between IHDI and vaccination rates is statistically significant, but the relationship between LDI and vaccination rates is not. IHDI has a coefficient of ~77.52, very high compared to LDI's coefficient of ~16.38. Therefore, vaccination rate is positively associated with both LDI and IHDI, but the latter is much more closely related to vaccination than the former. The p-value of 2.561e-09 is also higher than the single-variable IHDI model, indicating that the overall relationship is slightly less statistically significant than that of the other model. This higher p-value seems to be a result of adding LDI into the mix. The model does explain slightly more of the variation than the model using IHDI alone, but given the model’s higher p-value and the statistical insignificance of the association between LDI and vaccination rate, the IHDI model seems more useful than the multivariate one.
+
+The last model will incorporate an interaction between both independent variables, exploring the possibility that each variable has a different effect on vaccination rate based on the other variable’s value.
+
+```{r}
+int.reg = lm(people_vaccinated_per_hundred ~ v2x_libdem * ihdi_2019)
+summary(int.reg)
+```
+
+The above interaction model explains the most variation of any of the models, having the highest p-value. However, again only the coefficient for IHDI passes any significance tests—the relationship between LDI and the dependent variable is not statistically significant, nor is that of the interaction between LDI and IDHI. Additionally, the IHDI coefficient passes fewer significance tests than in all previous models using the IHDI variable (there are two asterisks next to ihdi_2019 in the estimate table, compared to three in the other tables). The p-value of 1.097e-.08 is higher than that of both the IHDI model and the multivariate model, though still not as high as the LDI model. Again, it appears that giving more power to LDI increases a model's p-value. Perhaps most importantly, the coefficients for LDI and for the interaction are almost the same. Functionally, the interaction does little more than cancel out most of the influence of LDI, leaving the bulk of the variation to be explained by IDHI. This does not seem to indicate an actual substantive interaction between development levels and democracy levels, but rather appears to be a mathematical correction produced to limit the influence of the largely unnecessary LDI variable. Given that the LDI variable has little influence over the model’s predictions, coupled with the higher p-value and failed significance tests on all but one coefficient, this model too seems less useful than the IDHI model.
+
+### Discussion
+
+In my main analyses, I evaluated the effect of democracy levels and development levels on countries’ vaccination rates. The analyses found that democracy levels are positively associated with vaccination rates, but that this is likely to be a result of the association between democracy levels and development levels. Though the model using democracy levels as a predictor did definitively show a positive relationship, it was the model that explained the least variation, and any subsequent model that incorporated democracy appeared only to degrade the model’s significance.
+
+Seeking to test the substantive significance of this positive relationship between democracy and vaccination rates, I tested countries’ development against vaccination rates to see if this provided a better explanation. This test found that development levels are a similarly positive predictor, with a much larger relationship with vaccination rates than democracy levels had. The model using only development as an independent variable showed a positive relationship even more conclusively than the democracy model did, and development held the bulk of the influence even in subsequent models that incorporated democracy as a factor. When controlling for development as a variable, the relationship between democracy and vaccination was no longer statistically significant, unlike that between development and vaccination. Democracy levels are themselves closely related to development levels; it seems that this explains why democracy is a decent predictor of vaccination rates on its own, but ceases to be important under other models.
+
+Considering the apparent omitted variable bias in the initial democracy model of vaccination rates, I wonder if a similar bias exists in IHDI models. IHDI is calculated from many other measures, and it seems reasonable to guess that some of those measures hold much more influence over vaccination rates than others. I would expect inequality to influence who has access to vaccines in the first place, and infrastructure to influence how efficiently those vaccines are distributed. It could be more useful to dive into the individual factors that go into the calculation of the human development index to see which of those hold the most predictive utility. Possible omitted variable bias is a weakness of the IHDI model of vaccination, as is inaccuracy due to outdated information from the 2019 IHDI dataset. The 2019 data was remarkably good at predicting 2021 vaccination rates, but it is possible that some nations saw development shifts since 2019 that the IHDI could not account for.
